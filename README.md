@@ -1,6 +1,6 @@
 **AWS-Project-1**
 
-**Description**:  AWS Project Submitted by Rajesh Sood
+**Description**:
 This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. The application is based on ECS Fargate cluster and DB is Aurora Postgres. Also, an S3 bucket is provisioned. 
 
 
