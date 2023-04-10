@@ -1,8 +1,8 @@
 **AWS-Project-1**
 
 **Description**:  AWS Project Submitted by Rajesh Sood
-This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. The application is based on ECS Fargate cluster and DB is Aurora Postgres. Also, an S3 bucket is provisioned In order to use this template, its suggested that you login to your AWS account and select target AWS region.  
-Its suggested to review parameters and make any necessary change before deployment
+This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. The application is based on ECS Fargate cluster and DB is Aurora Postgres. Also, an S3 bucket is provisioned. 
+
 
 ![arch1](https://user-images.githubusercontent.com/103620921/169332190-1b77ab21-5bfa-4933-a6fb-f9fa6a94b28b.JPG)
 
