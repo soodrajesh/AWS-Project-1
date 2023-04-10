@@ -11,13 +11,18 @@ This project contains a cloudformation template to deploy a VPC with 3 public, 3
 **Disaster Recovery Plan (High Level)**
 A resilient workload helps to prepare for disaster events, which is one of the biggest challenges one can face. 
 Such events include natural disasters like earthquakes or floods, technical failures such as power or network loss, and human actions such as inadvertent or unauthorized modifications.
+
 AWS disaster recovery plan should include the following steps:
 
 1.	**Backup your data:** Regularly backup your data to Amazon S3 using AWS Backup. This will ensure that you have a copy of your data in case of a disaster. For example, you could set up a daily backup of your critical data to an S3 bucket in a different region.
 2.	**Create a recovery plan:** Create a recovery plan that outlines the steps you will take in case of a disaster. For example, your recovery plan might include the following steps:
+
 •	Determine the cause of the disaster: Identify what caused the disaster, such as a hardware failure, a natural disaster, or a cyber attack.
+
 •	Activate your recovery plan: Once you have identified the cause of the disaster, activate your recovery plan. This might involve launching a new instance of your application in a different region, restoring your data from a backup, or both.
+
 •	Test your recovery: Once your application is up and running in the new region, test your recovery to ensure that everything is working as expected.
+
 3.	**Test your recovery plan:** Regularly test your recovery plan to ensure that it will work when you need it. For example, you could schedule a quarterly test where you simulate a disaster scenario and activate your recovery plan.
 4.	**Use multiple availability zones:** Use multiple availability zones to ensure that your data and applications are available in case of a disaster. For example, you could use AWS Elastic Load Balancer to distribute traffic across multiple availability zones in the same region.
 5.	**Use AWS disaster recovery services:** Use AWS Disaster Recovery to automate the recovery of your applications in case of a disaster. For example, you could use AWS Disaster Recovery to create a replica of your application in a different region.
