@@ -13,7 +13,7 @@ Description: AWS Cloudformation template
 #List of Parameters
 Parameters:
   EnvironmentName:
-    Description: An environment name that is prefixed to resource names
+    Description: An environment name e.g. Dev, Stage, Uat and Prod
     Type: String
     
   VpcCIDR:
