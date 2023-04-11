@@ -1,8 +1,7 @@
 #AWS Project Submitted by Rajesh Sood
 #Description: This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. 
 #It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. 
-#The application is based on ECS Fargate cluster with Auto Scaling and DB is Aurora Postgres. Also, an S3 bucket is provisioned 
-#In order to use this template, its suggested that you login to your AWS account and select target AWS region.  
+#The application is based on ECS Fargate cluster with Auto Scaling and DB is Aurora Postgres. Also, an S3 bucket is provisioned.  
 #Its suggested to review parameters and make any necessary change before deployment
 
 
@@ -91,6 +90,8 @@ Parameters:
      Default: "1"
 
 ##########################
+#Resources deployment begins
+
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -400,6 +401,7 @@ Resources:
       SubnetId: !Ref DBSubnet3
 
 ####################
+#Creating DB
 
   DatabaseSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -446,7 +448,8 @@ Resources:
         - Key: Name
           Value: !Sub "${AWS::StackName}-database"
  ######################## 
-  
+ #Creating S3 bucket 
+ 
   TransactionLogBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -650,6 +653,8 @@ Resources:
           TargetGroupArn: !Ref ECSTargetGroup3
 
 ######################
+#Adding Auto Scaling 
+
   AutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
