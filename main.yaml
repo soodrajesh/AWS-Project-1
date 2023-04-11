@@ -1,7 +1,7 @@
 #AWS Project Submitted by Rajesh Sood
 #Description: This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. 
 #It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. 
-#The application is based on ECS Fargate cluster and DB is Aurora Postgres. Also, an S3 bucket is provisioned 
+#The application is based on ECS Fargate cluster with Auto Scaling and DB is Aurora Postgres. Also, an S3 bucket is provisioned 
 #In order to use this template, its suggested that you login to your AWS account and select target AWS region.  
 #Its suggested to review parameters and make any necessary change before deployment
 
@@ -13,7 +13,7 @@ Description: AWS Cloudformation template
 #List of Parameters
 Parameters:
   EnvironmentName:
-    Description: An environment name e.g. Dev, Stage, Uat and Prod
+    Description: An environment name that is prefixed to resource names
     Type: String
     
   VpcCIDR:
@@ -83,8 +83,7 @@ Parameters:
   ContainerImage: 
      Type: String
      # Update with the Docker image. "You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag)."
-     # Change the aws account Id and region as per requirement
-     Default: 01234567890.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
+     Default: 094896736008.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
   
   ECSTaskDesiredCount:
      Type: String
@@ -92,8 +91,6 @@ Parameters:
      Default: "1"
 
 ##########################
-#Resources deployment begins 
-
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -652,6 +649,75 @@ Resources:
           ContainerPort: 80
           TargetGroupArn: !Ref ECSTargetGroup3
 
+######################
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                  - cloudwatch:DeleteAlarms
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:PutMetricAlarm
+                Resource: '*'
+
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 10
+      ResourceId: !Join
+        - '/'
+        - - service
+          - !Ref ECSFargateCluster
+          - !GetAtt ECSFargateService.Name
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      RoleARN: !GetAtt AutoScalingRole.Arn
+
+  ScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ECSFargateService}ScaleUpPolicy'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: 1
+  ScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ECSFargateService}ScaleDownPolicy'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        MetricAggregationType: Average
+        StepAdjustments:
+          - MetricIntervalUpperBound: 0
+            ScalingAdjustment: -1
+####################
 
   ExecutionRoleArn:
     Type: AWS::IAM::Role
@@ -710,3 +776,4 @@ Outputs:
     Value: !Ref TransactionLogBucket
     Description: Name of the S3 bucket for ECS task logs
 ################
+
