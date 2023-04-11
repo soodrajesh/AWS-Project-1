@@ -83,7 +83,8 @@ Parameters:
   ContainerImage: 
      Type: String
      # Update with the Docker image. "You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag)."
-     Default: 094896736008.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
+     # Change the aws account Id and region as per requirement
+     Default: 01234567890.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
   
   ECSTaskDesiredCount:
      Type: String
