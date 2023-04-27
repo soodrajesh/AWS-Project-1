@@ -85,7 +85,6 @@ Parameters:
      Default: "nginx:latest"
      # Update with the Docker image. "You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag)."
      #Please update the Image using your AWS account and region 
-     #Default: 01234567890.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
   
   ECSTaskDesiredCount:
      Type: String
