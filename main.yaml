@@ -1,7 +1,8 @@
-#AWS Project Submitted by Rajesh Sood
+#AWS Project by Rajesh Sood
 #Description: This project contains a cloudformation template to deploy a VPC with 3 public, 3 private and 3 DB subnets spread across three Availability Zones. 
 #It deploys an internet gateway, with a default route on the public subnets. It deploys NAT gateways and default routes for them in the private subnets. 
-#The application is based on ECS Fargate cluster with Auto Scaling and DB is Aurora Postgres. Also, an S3 bucket is provisioned.  
+#The application is based on ECS Fargate cluster with Auto Scaling and DB is Aurora Postgres. Also, an S3 bucket is provisioned. We'll use latest Nginx as 
+# a application to deply.   
 #Its suggested to review parameters and make any necessary change before deployment
 
 
@@ -81,14 +82,15 @@ Parameters:
   
   ContainerImage: 
      Type: String
+     Default: "nginx:latest"
      # Update with the Docker image. "You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag)."
      #Please update the Image using your AWS account and region 
-     Default: 01234567890.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
+     #Default: 01234567890.dkr.ecr.us-west-2.amazonaws.com/amazonlinux:latest
   
   ECSTaskDesiredCount:
      Type: String
      # Update the number of ECS tasks
-     Default: "1"
+     Default: "2"
 
 ##########################
 #Resources deployment begins
@@ -459,7 +461,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-transaction-log-bucket"          
-###########################
+##########################
 
 # ECR repository for the application
   ECRRepo:
@@ -488,14 +490,22 @@ Resources:
           Image: !Ref ContainerImage
           PortMappings:
             - ContainerPort: 80
+              Protocol: tcp
           LogConfiguration:
             LogDriver: awslogs
             Options:
-              awslogs-group: TransactionLogGroup
+              awslogs-group: !Ref MyLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: !Ref AppName
       ExecutionRoleArn: !Ref ExecutionRoleArn
       TaskRoleArn: !Ref TaskRoleArn
+
+#Cloudwatch Log Group
+  MyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/ecs/nginx"
+      RetentionInDays: 30
 
 #Load Balancers
   ALB1:
@@ -507,30 +517,10 @@ Resources:
       Subnets: 
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
-      SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
-  ALB2:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub "${AWS::StackName}-alb2"
-      Scheme: internet-facing
-      Type: application
-      Subnets:
-        - !Ref PublicSubnet2
         - !Ref PublicSubnet3
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
-  ALB3:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Sub "${AWS::StackName}-alb3"
-      Scheme: internet-facing
-      Type: application
-      Subnets: 
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet3
-      SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
+
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -563,34 +553,6 @@ Resources:
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
 
-  ECSTargetGroup2:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Join ["-", [!Ref AppName, "tg2"]]
-      Port: 80
-      Protocol: HTTP
-      TargetType: ip
-      VpcId: !Ref VPC
-      HealthCheckIntervalSeconds: 30
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-
-  ECSTargetGroup3:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Name: !Join ["-", [!Ref AppName, "tg3"]]
-      Port: 80
-      Protocol: HTTP
-      TargetType: ip
-      VpcId: !Ref VPC
-      HealthCheckIntervalSeconds: 30
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-
 #Load Balancer Listeners
   Listener1:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -601,32 +563,13 @@ Resources:
       LoadBalancerArn: !Ref ALB1
       Port: 80
       Protocol: HTTP
-  Listener2:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ECSTargetGroup2
-      LoadBalancerArn: !Ref ALB2
-      Port: 80
-      Protocol: HTTP
-  Listener3:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ECSTargetGroup3
-      LoadBalancerArn: !Ref ALB3
-      Port: 80
-      Protocol: HTTP
+
 
 # ECS Service
   ECSFargateService:
     Type: AWS::ECS::Service
     DependsOn:
       - Listener1
-      - Listener2
-      - Listener3
     Properties:
       ServiceName: !Ref AppName
       Cluster: !Ref ECSFargateCluster
@@ -646,12 +589,6 @@ Resources:
         - ContainerName: !Ref AppName
           ContainerPort: 80
           TargetGroupArn: !Ref ECSTargetGroup1
-        - ContainerName: !Ref AppName
-          ContainerPort: 80
-          TargetGroupArn: !Ref ECSTargetGroup2
-        - ContainerName: !Ref AppName
-          ContainerPort: 80
-          TargetGroupArn: !Ref ECSTargetGroup3
 
 ######################
 #Adding Auto Scaling 
@@ -751,6 +688,29 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+  ECSPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "ecspolicy" 
+      PolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+            - ecs:RegisterTaskDefinition
+            - ecs:DeregisterTaskDefinition
+            - ecs:ListTaskDefinitions
+            - ecs:DescribeTaskDefinition
+            - ecs:ListTasks
+            - ecs:DescribeTasks
+            - ecs:RunTask
+            - ecs:StopTask
+            - logs:CreateLogStream
+            Resource: '*'
+      Roles: 
+        - !Ref "TaskRoleArn"
+
 ###################
 
 Outputs:
@@ -772,14 +732,8 @@ Outputs:
   ALBDNSName1:
     Value: !GetAtt ALB1.DNSName
     Description: DNS name of the load balancer 1
-  ALBDNSName2:
-    Value: !GetAtt ALB2.DNSName
-    Description: DNS name of the load balancer 2
-  ALBDNSName:
-    Value: !GetAtt ALB3.DNSName
-    Description: DNS name of the load balancer 3
   S3BucketName:
     Value: !Ref TransactionLogBucket
     Description: Name of the S3 bucket for ECS task logs
-################
+###############
 
